@@ -6,3 +6,5 @@ data/*.csv
 models/*.pkl
 .ipynb_checkpoints/
 reports/*.png
+firebase_key.json
+*firebase*adminsdk*.json

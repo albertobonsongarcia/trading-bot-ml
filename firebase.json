@@ -1,0 +1,24 @@
+{
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      "firebase_key.json",
+      ".env",
+      "data/**",
+      "models/**",
+      "src/**",
+      "notebooks/**",
+      "reports/**",
+      "*.py",
+      "requirements.txt",
+      "check_balance.py",
+      "*.md",
+      "*.csv",
+      "*.parquet",
+      "*.pkl"
+    ]
+  }
+}

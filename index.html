@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trading Bot — Asistente de Inversion</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+</style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+
+<div id="loginScreen" class="min-h-screen flex items-center justify-center p-4">
+  <div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 w-full max-w-md">
+    <div class="text-center mb-8">
+      <div class="text-3xl font-bold mb-2">📈 Trading Bot</div>
+      <div class="text-sm text-slate-400">Asistente de inversion con ML</div>
+    </div>
+
+    <div class="space-y-4">
+      <input id="email" type="email" placeholder="Correo" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 focus:outline-none focus:border-teal-500">
+      <input id="password" type="password" placeholder="Contrasena" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 focus:outline-none focus:border-teal-500">
+
+      <div class="flex gap-2">
+        <button onclick="login()" class="flex-1 bg-teal-500 hover:bg-teal-400 text-slate-950 font-semibold py-3 rounded-lg transition">Entrar</button>
+        <button onclick="register()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-100 font-semibold py-3 rounded-lg transition border border-slate-700">Registrarse</button>
+      </div>
+
+      <div id="authError" class="text-red-400 text-sm text-center hidden"></div>
+    </div>
+
+    <div class="text-xs text-slate-500 text-center mt-6">
+      Proyecto academico - No constituye asesoria financiera
+    </div>
+  </div>
+</div>
+
+<div id="mainApp" class="hidden">
+  <header class="border-b border-slate-800 bg-slate-900/50 backdrop-blur sticky top-0 z-10">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div>
+        <div class="text-xl font-bold">📈 Trading Bot</div>
+        <div class="text-xs text-slate-400" id="userEmail"></div>
+      </div>
+      <button onclick="logout()" class="text-sm text-slate-400 hover:text-white">Salir</button>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-8">
+
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold mb-2">Tu situacion de inversion hoy</h1>
+      <p class="text-slate-400">Recomendaciones generadas por modelo Random Forest entrenado en 1 ano de data historica de Bybit Spot.</p>
+    </div>
+
+    <div id="loading" class="text-center py-12 text-slate-400">Cargando predicciones...</div>
+
+    <div id="predictionsContainer" class="grid md:grid-cols-2 gap-4 mb-12 hidden"></div>
+
+    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-6 mb-8">
+      <h2 class="text-xl font-bold mb-1">Calculadora de posicion</h2>
+      <p class="text-sm text-slate-400 mb-6">Calcula cuanto invertir basado en tu capital y tolerancia al riesgo.</p>
+
+      <div class="grid md:grid-cols-3 gap-4 mb-6">
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Tu capital (USD)</label>
+          <input id="capital" type="number" value="5000" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:border-teal-500">
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">% de riesgo por trade</label>
+          <input id="riskPct" type="number" value="1" step="0.5" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:border-teal-500">
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Activo</label>
+          <select id="calcTicker" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:border-teal-500">
+            <option value="BTCUSDT">BTC</option>
+            <option value="ETHUSDT">ETH</option>
+            <option value="SOLUSDT">SOL</option>
+            <option value="XRPUSDT">XRP</option>
+          </select>
+        </div>
+      </div>
+
+      <button onclick="calculatePosition()" class="bg-teal-500 hover:bg-teal-400 text-slate-950 font-semibold px-6 py-2 rounded-lg transition">Calcular</button>
+
+      <div id="calcResult" class="mt-6 hidden">
+        <div class="bg-slate-800 rounded-xl p-4 space-y-2 text-sm">
+          <div class="flex justify-between"><span class="text-slate-400">Cantidad a comprar:</span><span id="resQty" class="font-mono"></span></div>
+          <div class="flex justify-between"><span class="text-slate-400">Inversion total:</span><span id="resInvest" class="font-mono"></span></div>
+          <div class="flex justify-between"><span class="text-slate-400">Stop loss:</span><span id="resSL" class="font-mono text-red-400"></span></div>
+          <div class="flex justify-between"><span class="text-slate-400">Take profit:</span><span id="resTP" class="font-mono text-green-400"></span></div>
+          <div class="flex justify-between"><span class="text-slate-400">Riesgo maximo:</span><span id="resRisk" class="font-mono text-red-400"></span></div>
+          <div class="flex justify-between"><span class="text-slate-400">Ganancia objetivo:</span><span id="resReward" class="font-mono text-green-400"></span></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="bg-amber-950/30 border border-amber-900/50 rounded-xl p-4 text-sm text-amber-200">
+      <strong>Aviso:</strong> Esta aplicacion es un proyecto academico. Las senales son generadas por un modelo estadistico con accuracy historica entre 43% y 72% segun el activo. NO constituyen asesoria financiera. Operar criptomonedas conlleva riesgo de perdida total del capital.
+    </div>
+
+  </main>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCCT0KQkjORF_uJqYfd0aMy0Mcyya61G3E",
+    authDomain: "trading-bot-app-b6344.firebaseapp.com",
+    projectId: "trading-bot-app-b6344",
+    storageBucket: "trading-bot-app-b6344.firebasestorage.app",
+    messagingSenderId: "373516574092",
+    appId: "1:373516574092:web:9dd3fd20f35fb89b704aa9"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  let predictionsCache = {};
+
+  window.login = async () => {
+    const email = document.getElementById("email").value;
+    const pwd = document.getElementById("password").value;
+    try {
+      await signInWithEmailAndPassword(auth, email, pwd);
+    } catch (e) {
+      showAuthError(e.message);
+    }
+  };
+
+  window.register = async () => {
+    const email = document.getElementById("email").value;
+    const pwd = document.getElementById("password").value;
+    if (pwd.length < 6) { showAuthError("La contrasena debe tener al menos 6 caracteres"); return; }
+    try {
+      await createUserWithEmailAndPassword(auth, email, pwd);
+    } catch (e) {
+      showAuthError(e.message);
+    }
+  };
+
+  window.logout = () => signOut(auth);
+
+  function showAuthError(msg) {
+    const el = document.getElementById("authError");
+    el.textContent = msg;
+    el.classList.remove("hidden");
+  }
+
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      document.getElementById("loginScreen").classList.add("hidden");
+      document.getElementById("mainApp").classList.remove("hidden");
+      document.getElementById("userEmail").textContent = user.email;
+      await loadPredictions();
+    } else {
+      document.getElementById("loginScreen").classList.remove("hidden");
+      document.getElementById("mainApp").classList.add("hidden");
+    }
+  });
+
+  async function loadPredictions() {
+    document.getElementById("loading").classList.remove("hidden");
+    const snap = await getDocs(collection(db, "predictions"));
+    const container = document.getElementById("predictionsContainer");
+    container.innerHTML = "";
+
+    snap.forEach(doc => {
+      const d = doc.data();
+      predictionsCache[doc.id] = d;
+
+      const sigColor = d.signal === "BUY" ? "text-green-400" : d.signal === "SELL" ? "text-red-400" : "text-slate-400";
+      const sigBg = d.signal === "BUY" ? "bg-green-500/10 border-green-500/30" : d.signal === "SELL" ? "bg-red-500/10 border-red-500/30" : "bg-slate-700/30 border-slate-600";
+
+      container.innerHTML += `
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <div class="text-xs text-slate-400 uppercase">${doc.id}</div>
+              <div class="text-2xl font-bold">$${d.current_price.toFixed(2)}</div>
+            </div>
+            <div class="${sigBg} ${sigColor} font-bold px-4 py-2 rounded-lg border">
+              ${d.signal}
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2 text-xs mb-4">
+            <div class="bg-slate-800 rounded p-2">
+              <div class="text-slate-500">SELL</div>
+              <div class="font-mono">${(d.confidence_sell * 100).toFixed(1)}%</div>
+            </div>
+            <div class="bg-slate-800 rounded p-2">
+              <div class="text-slate-500">HOLD</div>
+              <div class="font-mono">${(d.confidence_hold * 100).toFixed(1)}%</div>
+            </div>
+            <div class="bg-slate-800 rounded p-2">
+              <div class="text-slate-500">BUY</div>
+              <div class="font-mono">${(d.confidence_buy * 100).toFixed(1)}%</div>
+            </div>
+          </div>
+
+          ${d.signal === "BUY" ? `
+            <div class="text-sm space-y-1 pt-3 border-t border-slate-800">
+              <div class="flex justify-between"><span class="text-slate-400">Stop Loss</span><span class="font-mono text-red-400">$${d.stop_loss.toFixed(2)} (-${d.sl_pct.toFixed(2)}%)</span></div>
+              <div class="flex justify-between"><span class="text-slate-400">Take Profit</span><span class="font-mono text-green-400">$${d.take_profit.toFixed(2)} (+${d.tp_pct.toFixed(2)}%)</span></div>
+              <div class="flex justify-between"><span class="text-slate-400">R:R</span><span class="font-mono">1:${d.risk_reward}</span></div>
+            </div>
+          ` : `
+            <div class="text-xs text-slate-500 pt-3 border-t border-slate-800">
+              El modelo no recomienda entrar a este activo en este momento.
+            </div>
+          `}
+
+          <div class="text-xs text-slate-600 mt-3">Actualizado: ${new Date(d.updated_at).toLocaleString()}</div>
+        </div>
+      `;
+    });
+
+    document.getElementById("loading").classList.add("hidden");
+    document.getElementById("predictionsContainer").classList.remove("hidden");
+  }
+
+  window.calculatePosition = () => {
+    const capital = parseFloat(document.getElementById("capital").value);
+    const riskPct = parseFloat(document.getElementById("riskPct").value);
+    const ticker = document.getElementById("calcTicker").value;
+    const pred = predictionsCache[ticker];
+    if (!pred) { alert("Predicciones aun no cargadas"); return; }
+
+    const riskUSD = capital * (riskPct / 100);
+    const slDist = pred.current_price - pred.stop_loss;
+    const qty = riskUSD / slDist;
+    const invest = qty * pred.current_price;
+    const reward = riskUSD * pred.risk_reward;
+
+    document.getElementById("resQty").textContent = `${qty.toFixed(6)} ${ticker.replace("USDT","")}`;
+    document.getElementById("resInvest").textContent = `$${invest.toFixed(2)}`;
+    document.getElementById("resSL").textContent = `$${pred.stop_loss.toFixed(2)}`;
+    document.getElementById("resTP").textContent = `$${pred.take_profit.toFixed(2)}`;
+    document.getElementById("resRisk").textContent = `-$${riskUSD.toFixed(2)}`;
+    document.getElementById("resReward").textContent = `+$${reward.toFixed(2)}`;
+    document.getElementById("calcResult").classList.remove("hidden");
+  };
+</script>
+</body>
+</html>
