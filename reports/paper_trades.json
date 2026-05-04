@@ -1,0 +1,24 @@
+[
+  {
+    "timestamp": "2026-05-03T23:21:50.504927",
+    "ticker": "BTCUSDT",
+    "side": "Buy",
+    "qty": 0.001064,
+    "entry_price": 93955.57,
+    "stop_loss": 89188.12794130127,
+    "take_profit": 103490.45411739747,
+    "risk_reward": 2.0,
+    "mode": "PAPER_TRADING"
+  },
+  {
+    "timestamp": "2026-05-03T23:27:02.742972",
+    "ticker": "BTCUSDT",
+    "side": "Buy",
+    "qty": 0.001064,
+    "entry_price": 93955.57,
+    "stop_loss": 89188.12794130127,
+    "take_profit": 103490.45411739747,
+    "risk_reward": 2.0,
+    "mode": "PAPER_TRADING"
+  }
+]
